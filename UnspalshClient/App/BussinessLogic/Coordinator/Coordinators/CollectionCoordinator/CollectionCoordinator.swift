@@ -61,7 +61,7 @@ private extension CollectionCoordinator {
         view.showError = { [weak self] error in
             self?.showErrorAlert(error)
         }
-        view.close = dismiss
+        view.close = router.popModule
         router.push(view)
     }
     

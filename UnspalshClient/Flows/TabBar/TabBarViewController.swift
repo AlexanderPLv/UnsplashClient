@@ -34,5 +34,15 @@ private extension TabBarViewController {
         tabBar.isTranslucent = false
         tabBar.barTintColor = .black
         tabBar.backgroundColor = .black
+        setTabBarHeight(62.0)
+    }
+    
+    private func setTabBarHeight(_ height: CGFloat) {
+        let bottomInset = view.safeAreaInsets.bottom
+        let tabBarHeight = bottomInset + height
+        var newTabBarFrame = tabBar.frame
+        newTabBarFrame.size.height = tabBarHeight
+        newTabBarFrame.origin.y = self.view.frame.size.height - tabBarHeight
+        tabBar.frame = newTabBarFrame
     }
 }

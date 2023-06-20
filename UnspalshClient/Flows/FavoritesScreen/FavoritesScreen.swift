@@ -12,13 +12,28 @@ final class FavoritesScreen: UIViewController {
     
     var close: CompletionBlock?
     var onDetailScreen: ((ImageInfo) -> ())?
+    var showError: ((String) -> ())?
+    
+    private let titleLabel: UILabel = {
+        let view = UILabel()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.font = .boldSystemFont(ofSize: 32.0)
+        view.textColor = .black
+        view.numberOfLines = 1
+        view.text = "Favorites"
+        view.textAlignment = .left
+        return view
+    }()
     
     private var items = [ImageInfo]()
     private let collectionView: UICollectionView
     
-    var fetchedResultsController: NSFetchedResultsController<Image>!
+    private let fetchedResultsController: NSFetchedResultsController<Image>
     
-    init() {
+    init(
+        fetchedResultsController: NSFetchedResultsController<Image>
+    ) {
+        self.fetchedResultsController = fetchedResultsController
         self.collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
         super.init(nibName: nil, bundle: nil)
     }
@@ -29,8 +44,8 @@ final class FavoritesScreen: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupCollectionView()
-       // fetchData()
+        fetchedResultsController.delegate = self
+        setupViews()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -42,27 +57,28 @@ final class FavoritesScreen: UIViewController {
 private extension FavoritesScreen {
     
     func fetchData() {
-        if fetchedResultsController == nil {
-            let request: NSFetchRequest<Image> = Image.fetchRequest()
-            let sort = NSSortDescriptor(key: "createdAt", ascending: false)
-            request.sortDescriptors = [sort]
-
-            fetchedResultsController = NSFetchedResultsController(fetchRequest: request, managedObjectContext: Image.viewContext, sectionNameKeyPath: nil, cacheName: nil)
-            fetchedResultsController.delegate = self
-        }
-
         do {
             try fetchedResultsController.performFetch()
             collectionView.reloadData()
-        } catch {
-            print("Fetch failed")
+        } catch let error {
+            showError?(error.localizedDescription)
         }
+    }
+    
+    func setupViews() {
+        view.addSubview(titleLabel)
+        [
+            titleLabel.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor, constant: 20.0),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20.0),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 20.0),
+        ].forEach { $0.isActive = true }
+        setupCollectionView()
     }
     
     func setupCollectionView() {
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.contentInset = .init(top: 30.0, left: 0.0, bottom: 10.0, right: 0.0)
+        collectionView.contentInset = .init(top: 15.0, left: 0.0, bottom: 10.0, right: 0.0)
         collectionView.register(
             FavoritesScreenCell.self,
             forCellWithReuseIdentifier: FavoritesScreenCell.reuseIdentifier
@@ -71,7 +87,7 @@ private extension FavoritesScreen {
         collectionView.showsVerticalScrollIndicator = false
         view.addSubview(collectionView)
         [
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),

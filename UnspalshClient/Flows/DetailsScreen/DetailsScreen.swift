@@ -23,25 +23,41 @@ final class DetailsScreen: UIViewController {
         view.addTarget(self, action: #selector(didTapFavoritesButton), for: .touchUpInside)
         return view
     }()
+    
     private let imageView: UIImageView = {
         let view = UIImageView()
         view.contentMode = .scaleToFill
         return view
     }()
+    
+    private lazy var backButton: UIButton = {
+        let view = UIButton()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.setImage(
+            UIImage(systemName: "arrow.backward")?.withTintColor(.black, renderingMode: .alwaysOriginal),
+            for: .normal
+        )
+        view.addTarget(self, action: #selector(didTapBackButton), for: .touchUpInside)
+        return view
+    }()
+    
     private let nameLabel: LabelView
     private let locationLabel: LabelView
     private let dateLabel: LabelView
     private let downloadedLabel: LabelView
     
     private var imageInfo: ImageInfo
+    private let dataManager: ImageDataManager
     
     init(
-        imageInfo: ImageInfo
+        imageInfo: ImageInfo,
+        dataManager: ImageDataManager
     ) {
         self.imageInfo = imageInfo
+        self.dataManager = dataManager
         self.nameLabel = LabelView(title: "Name", text: imageInfo.user.name)
         self.locationLabel = LabelView(title: "Location", text: imageInfo.user.location)
-        self.dateLabel = LabelView(title: "Date", text: imageInfo.createdAt)
+        self.dateLabel = LabelView(title: "Date", text: imageInfo.shortDate)
         self.downloadedLabel = LabelView(title: "Downloaded", text: String(imageInfo.likes))
         super.init(nibName: nil, bundle: nil)
     }
@@ -52,6 +68,7 @@ final class DetailsScreen: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         setupViews()
         updateButtonState()
         imageView.sd_imageIndicator = SDWebImageActivityIndicator.gray
@@ -62,53 +79,36 @@ final class DetailsScreen: UIViewController {
 
 private extension DetailsScreen {
     
+    @objc func didTapBackButton() {
+        close?()
+    }
+    
     @objc func didTapFavoritesButton() {
-        favoritesButton.isEnabled = false
-        if let image = Image.getImage(by: imageInfo.id) {
-            delete(image)
-        } else {
-            save()
+        do {
+            if let image = dataManager.getImage(by: imageInfo.id) {
+                try dataManager.delete(image)
+            } else {
+                try dataManager.save(imageInfo)
+            }
+        } catch let error {
+            showError?(error.localizedDescription)
         }
         updateButtonState()
     }
     
-    func delete(_ image: Image) {
-        do {
-            try image.delete()
-        } catch let error {
-            showError?(error.localizedDescription)
-        }
-    }
-    
-    func save() {
-        let image = Image(context: Image.viewContext)
-        
-        image.id = imageInfo.id
-        image.userName = imageInfo.user.name
-        image.location = imageInfo.user.location
-        image.url = imageInfo.urls.small
-        image.likes = Int32(imageInfo.likes)
-        image.createdAt = imageInfo.createdAt
-        
-        do {
-            try image.save()
-        } catch let error {
-            showError?(error.localizedDescription)
-        }
-    }
-    
     func updateButtonState() {
-        if Image.getImage(by: imageInfo.id) != nil {
-            favoritesButton.setImage(UIImage(systemName: "star.fill")?.withTintColor(.yellow, renderingMode: .alwaysOriginal), for: .normal)
-        } else {
-            favoritesButton.setImage(UIImage(systemName: "star.fill")?.withTintColor(.black, renderingMode: .alwaysOriginal), for: .normal)
-        }
-        favoritesButton.isEnabled = true
+        let color: UIColor = dataManager.isImageExist(with: imageInfo.id) ? .yellow : .black
+        favoritesButton.setImage(
+            UIImage(systemName: "star.fill")?.withTintColor(color, renderingMode: .alwaysOriginal),
+            for: .normal
+        )
     }
     
     func setupViews() {
         view.backgroundColor = .white
         imageView.backgroundColor = .lightGray
+        
+        locationLabel.isHidden = imageInfo.user.location == nil
         
         let scrollView = UIScrollView(frame: .zero)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -125,6 +125,7 @@ private extension DetailsScreen {
         scrollView.addSubview(stack)
         view.addSubview(scrollView)
         view.addSubview(favoritesButton)
+        view.addSubview(backButton)
         [
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -134,15 +135,20 @@ private extension DetailsScreen {
             imageView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             imageView.heightAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            stack.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            stack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            backButton.widthAnchor.constraint(equalToConstant: 48.0),
+            backButton.heightAnchor.constraint(equalToConstant: 48.0),
+            backButton.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor, constant: 20.0),
+            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15.0),
             
             favoritesButton.widthAnchor.constraint(equalToConstant: 48.0),
             favoritesButton.heightAnchor.constraint(equalToConstant: 48.0),
-            favoritesButton.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor, constant: 45.0),
+            favoritesButton.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor, constant: 20.0),
             favoritesButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15.0),
+            
+            stack.topAnchor.constraint(equalTo: backButton.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
         ].forEach { $0.isActive = true }
     }
 }

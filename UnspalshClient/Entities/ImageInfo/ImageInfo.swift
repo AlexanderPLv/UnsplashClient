@@ -9,10 +9,16 @@ import Foundation
 
 struct ImageInfo: Codable {
     let id: String
+    let createdAt: String
+    let description: String?
+    var likes: Int
     let urls: Urls
     let user: User
-    let createdAt: String
-    var likes: Int
+    
+    var shortDate: String {
+        let subtring = createdAt.prefix { $0 != "T" }
+        return String(subtring)
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -20,14 +26,16 @@ struct ImageInfo: Codable {
         case user
         case createdAt = "created_at"
         case likes
+        case description
     }
     
-    init(id: String, urls: Urls, user: User, createdAt: String, likes: Int) {
+    init(id: String, urls: Urls, description: String, user: User, createdAt: String, likes: Int) {
         self.id = id
         self.urls = urls
         self.user = user
         self.createdAt = createdAt
         self.likes = likes
+        self.description = description
     }
     
     init?(image: Image) {
@@ -41,5 +49,6 @@ struct ImageInfo: Codable {
         self.user = User(name: name, location: image.location)
         self.createdAt = date
         self.likes = Int(image.likes)
+        self.description = image.desc
     }
 }

@@ -9,7 +9,7 @@ import UIKit
 
 extension ModulesFactory {
     func buildDetailsScreen(imageInfo: ImageInfo) -> DetailsScreen {
-        let screen = DetailsScreen(imageInfo: imageInfo)
+        let screen = DetailsScreen(imageInfo: imageInfo, dataManager: dataManager)
         return screen
     }
     

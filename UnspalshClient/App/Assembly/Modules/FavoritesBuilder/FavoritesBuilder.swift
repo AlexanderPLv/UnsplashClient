@@ -15,7 +15,7 @@ protocol FavoritesBuilderProtocol {
 
 extension ModulesFactory: FavoritesBuilderProtocol {
     func buildFavoritesScreen() -> FavoritesScreen {
-        let screen = FavoritesScreen()
+        let screen = FavoritesScreen(fetchedResultsController: dataManager.createImageFetchedResultController())
         let config = UIImage.SymbolConfiguration(scale: .large)
         screen.tabBarItem = UITabBarItem(
             title: nil,

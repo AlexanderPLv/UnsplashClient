@@ -12,6 +12,7 @@ final class ModulesFactory {
     static let shared = ModulesFactory()
     
     let networkService = NetworkService.shared
+    let dataManager = CoreDataManager.shared
     
     private init() {}
 }
